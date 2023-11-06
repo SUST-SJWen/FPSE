@@ -7,7 +7,7 @@ Fully Perturbed Self-Ensemble Framework using Cascaded Parallel CNN-Transformer 
 
 ## Usage
 
-1. Download the pre-processed data and put the data in `../data/ACDC`. In this project, we use the ACDC dataset for training demonstration, and the training process for the AbdomenCT-1K and ISIC2018 datasets is similar to that of ACDC. You can download the dataset with the list of labeled training, unlabeled training, validation, and testing slices as following:
+1. In this project, we use the ACDC dataset for training demonstration, and the training process for the AbdomenCT-1K and ISIC2018 datasets is similar to that of ACDC. Download the pre-processed data and put the data in `../data/ACDC`. You can download the ACDC dataset with the list of labeled training, unlabeled training, validation, and testing slices as following:
 ACDC from [Google Drive Link](https://drive.google.com/file/d/1F3JzBSIURtFJkfcExBcT6Hu7Ar5_f8uv/view?usp=sharing), or [Baidu Netdisk Link](https://pan.baidu.com/s/1LS6VHujD8kvuQikbydOibQ) with passcode: 'kafc'.
 
 2. Train the model
