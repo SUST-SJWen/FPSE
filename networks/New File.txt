@@ -1,0 +1,66 @@
+空间注意力
+class SpatialAttention(nn.Module):
+    def __init__(self, in_channel=512):
+        super(SpatialAttention, self).__init__()
+
+        # assert  kernel_size in (3,7), 'kernel size must be 3 or 7'
+        # padding = 3 if kernel_size == 7 else 1
+        self.avgpool=nn.AdaptiveAvgPool2d((1,1))
+        self.conv1 = nn.Conv2d(in_channel, 1, kernel_size=1, padding=0, bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        # avg_out_c = torch.mean(x, dim=1, keepdim=True)
+        avg_out_s = self.avgpool(x)
+        avg_out_s = avg_out_s.repeat(1, 1, x.size()[2], x.size()[3])
+        x = avg_out_s + x
+        x = self.conv1(x)
+        weight=self.sigmoid(x)
+        out=weight*x+x
+        return out
+
+class My_Conv_block1(nn.Module):
+    def __init__(self,ch_in,ch_out,stride=1,kernel_size=3,dilation=1,padding=1,DE="Down"):
+        super(My_Conv_block1,self).__init__()
+        self.stride=stride
+        self.conv1x1=nn.Conv2d(ch_in,int(ch_out/2),kernel_size=1)
+        self.maxpool=nn.MaxPool2d(stride)
+        self.conv_Deform1=nn.Sequential(
+            DeformConv2d(int(ch_out/2), int(ch_out/2), kernel_size=3, stride=1,dilation=1, padding=1, bias=True,device="cuda:2",DE=DE),
+            nn.BatchNorm2d(int(ch_out/2)),
+            nn.ReLU(inplace=True)
+        )
+        # self.conv_Deform2 = nn.Sequential(
+        #     DeformConv2d(int(ch_out/2), int(ch_out/2), kernel_size=3, stride=1, dilation=2,
+        #                  padding=2, bias=True, device="cuda:2", DE=DE),
+        #     nn.BatchNorm2d(int(ch_out/2)),
+        #     nn.ReLU(inplace=True)
+        # )
+        # self.conv_Deform3 = nn.Sequential(
+        #     DeformConv2d(int(ch_out/2), int(ch_out/2), kernel_size=3, stride=1, dilation=3,
+        #                  padding=3, bias=True, device="cuda:2", DE=DE),
+        #     nn.BatchNorm2d(int(ch_out/2)),
+        #     nn.ReLU(inplace=True)
+        # )
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(int(ch_out/2), int(ch_out/2), kernel_size=kernel_size, stride=1, dilation=dilation, padding=dilation, bias=True),
+            nn.BatchNorm2d(int(ch_out/2)),
+            nn.ReLU(inplace=True)
+        )
+        self.sobel_x, self.sobel_y = get_sobel(int(ch_out/2), 1)
+        self.sa = SpatialAttention(int(ch_out/2))
+        self.Conv1x1=nn.Conv2d( ch_out,ch_out,kernel_size=1)
+
+    def forward(self,x):
+        x=self.maxpool(x)
+        x=self.conv1x1(x)
+        x_L_sa = self.sa(x)
+        s = run_sobel(self.sobel_x, self.sobel_y, x)
+        x_L=x_L_sa+s
+        out1 = self.conv_Deform1(x_L)
+        out1 = self.conv1(out1)
+        # out2 = self.conv_Deform2(x_L)
+        # out3 = self.conv_Deform3(x_L)
+        # s = run_sobel(self.sobel_x, self.sobel_y, x_conv)+x_conv
+        output=self.Conv1x1(torch.cat((x_L,out1),dim=1))
+        return output
